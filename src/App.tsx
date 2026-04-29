@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { WelcomeScreen } from './components/WelcomeScreen';
 import { ActiveCall } from './components/ActiveCall';
 import { SummaryScreen } from './components/SummaryScreen';
-import { createSession, endSession } from './lib/api';
+import { createSession, endSession, getSessionSummary } from './lib/api';
 import type { SessionCreateResponse, SummaryResponse } from './lib/api';
 
 type AppState = 'welcome' | 'active' | 'summary';
@@ -29,13 +29,20 @@ function App() {
 
   const handleEndCall = async () => {
     if (!sessionData) return;
+    setAppState('summary'); // show summary screen immediately (loading state)
     try {
-      setAppState('summary'); // Optimistically go to summary (will show loading state if needed)
-      const summary = await endSession(sessionData.session_id);
+      // Try GET /summary first — agent may have already ended the session
+      const summary = await getSessionSummary(sessionData.session_id);
       setSummaryData(summary);
-    } catch (error) {
-      console.error("Failed to end session:", error);
-      alert("Failed to retrieve summary.");
+    } catch {
+      try {
+        // Fall back to POST /end if no summary exists yet
+        const summary = await endSession(sessionData.session_id);
+        setSummaryData(summary);
+      } catch (error) {
+        console.error('Failed to retrieve summary:', error);
+        // Show summary screen anyway with null — let SummaryScreen handle it
+      }
     }
   };
 

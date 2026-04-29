@@ -21,7 +21,7 @@ export interface SessionCreateResponse {
 export interface ConversationEvent {
   id: string;
   session_id: string;
-  event_type: 'TOOL_STARTED' | 'TOOL_SUCCEEDED' | string;
+  event_type: 'tool_started' | 'tool_succeeded' | 'tool_failed' | 'system' | string;
   event_name: string | null;
   payload_json: any;
   created_at: string;
@@ -29,8 +29,10 @@ export interface ConversationEvent {
 
 export interface Appointment {
   id: string;
-  appointment_date: string;
-  appointment_time: string;
+  date: string;           // backend returns 'date'
+  time: string;           // backend returns 'time'
+  appointment_date?: string; // fallback alias
+  appointment_time?: string; // fallback alias
   status: string;
 }
 
@@ -38,6 +40,9 @@ export interface SummaryResponse {
   session_id: string;
   summary_text: string;
   appointments: Appointment[];
+  preferences?: Record<string, any>;
+  generated_at?: string;
+  model_name?: string;
 }
 
 export const createSession = async (data: SessionCreateRequest): Promise<SessionCreateResponse> => {
