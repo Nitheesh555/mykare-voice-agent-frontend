@@ -36,11 +36,20 @@ export interface Appointment {
   status: string;
 }
 
+export interface CallCost {
+  llm_prompt_tokens: number;
+  llm_completion_tokens: number;
+  tts_characters: number;
+  stt_audio_seconds: number;
+  estimated_cost_usd: number;
+}
+
 export interface SummaryResponse {
   session_id: string;
   summary_text: string;
   appointments: Appointment[];
   preferences?: Record<string, any>;
+  cost?: CallCost;
   generated_at?: string;
   model_name?: string;
 }

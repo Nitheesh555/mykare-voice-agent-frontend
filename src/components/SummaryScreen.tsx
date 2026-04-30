@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, Clock, CheckCircle2, FileText, Settings2, Loader2 } from 'lucide-react';
+import { Calendar, Clock, CheckCircle2, FileText, Settings2, Loader2, DollarSign } from 'lucide-react';
 import type { SummaryResponse } from '../lib/api';
 
 interface SummaryScreenProps {
@@ -20,6 +20,9 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ summary, onRestart
 
   const hasPreferences =
     summary.preferences && Object.keys(summary.preferences).length > 0;
+
+  const cost = summary.cost;
+  const hasCost = cost && (cost.llm_prompt_tokens > 0 || cost.tts_characters > 0 || cost.stt_audio_seconds > 0);
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
@@ -130,6 +133,48 @@ export const SummaryScreen: React.FC<SummaryScreenProps> = ({ summary, onRestart
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Cost Breakdown */}
+        {hasCost && (
+          <div className="bg-surface rounded-2xl border border-border p-6 shadow-sm">
+            <div className="flex items-center space-x-3 mb-4 text-primary">
+              <DollarSign size={22} />
+              <h2 className="text-xl font-semibold text-foreground">Cost Breakdown</h2>
+              <span className="ml-auto text-xs text-muted bg-slate-100 px-2 py-0.5 rounded-full">Estimated</span>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+              <div className="bg-background rounded-xl border border-border p-3 text-center">
+                <p className="text-xs text-muted mb-1">LLM Input</p>
+                <p className="text-sm font-semibold text-foreground">{cost!.llm_prompt_tokens.toLocaleString()}</p>
+                <p className="text-[10px] text-muted">tokens</p>
+              </div>
+              <div className="bg-background rounded-xl border border-border p-3 text-center">
+                <p className="text-xs text-muted mb-1">LLM Output</p>
+                <p className="text-sm font-semibold text-foreground">{cost!.llm_completion_tokens.toLocaleString()}</p>
+                <p className="text-[10px] text-muted">tokens</p>
+              </div>
+              <div className="bg-background rounded-xl border border-border p-3 text-center">
+                <p className="text-xs text-muted mb-1">TTS</p>
+                <p className="text-sm font-semibold text-foreground">{cost!.tts_characters.toLocaleString()}</p>
+                <p className="text-[10px] text-muted">characters</p>
+              </div>
+              <div className="bg-background rounded-xl border border-border p-3 text-center">
+                <p className="text-xs text-muted mb-1">STT</p>
+                <p className="text-sm font-semibold text-foreground">{cost!.stt_audio_seconds.toFixed(1)}s</p>
+                <p className="text-[10px] text-muted">audio</p>
+              </div>
+            </div>
+            <div className="flex items-center justify-between bg-primary/5 border border-primary/20 rounded-xl px-4 py-3">
+              <span className="text-sm font-medium text-foreground">Estimated Call Cost</span>
+              <span className="text-lg font-bold text-primary">
+                ${cost!.estimated_cost_usd < 0.001 ? '<$0.001' : `$${cost!.estimated_cost_usd.toFixed(4)}`}
+              </span>
+            </div>
+            <p className="text-[10px] text-muted mt-2 text-right">
+              GPT-4o-mini · Cartesia Sonic · Deepgram Nova-2
+            </p>
           </div>
         )}
 

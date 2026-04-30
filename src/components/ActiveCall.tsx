@@ -36,6 +36,66 @@ const getToolLabel = (eventName: string | null, eventType: string): string => {
   return eventType === 'tool_started' ? labels.started : labels.succeeded;
 };
 
+const fmtDate = (iso: string) =>
+  new Date(iso + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+
+const fmtTime = (hhmm: string) => {
+  const [h, m] = hhmm.split(':').map(Number);
+  const d = new Date(); d.setHours(h, m);
+  return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+};
+
+const getEventDetail = (eventName: string | null, eventType: string, payload: any): string | null => {
+  if (!payload || !eventName) return null;
+  const succeeded = eventType === 'tool_succeeded';
+
+  switch (eventName) {
+    case 'identify_user':
+      if (succeeded) {
+        const count = payload.appointments?.length ?? 0;
+        return `${payload.name} · ${count} appointment${count !== 1 ? 's' : ''}`;
+      }
+      return `Phone: ${payload.phone_number}`;
+
+    case 'fetch_slots':
+      if (succeeded) {
+        const count = payload.slots?.length ?? 0;
+        return `${count} slot${count !== 1 ? 's' : ''} on ${fmtDate(payload.date)}`;
+      }
+      return `Date: ${fmtDate(payload.date)}`;
+
+    case 'book_appointment':
+      if (succeeded) return `Status: ${payload.status}`;
+      return `${fmtDate(payload.date)} at ${fmtTime(payload.time)}`;
+
+    case 'retrieve_appointments': {
+      if (succeeded) {
+        const count = payload.appointments?.length ?? 0;
+        return `${count} appointment${count !== 1 ? 's' : ''} found`;
+      }
+      return `Phone: ${payload.phone_number}`;
+    }
+
+    case 'cancel_appointment':
+      if (succeeded) return `Status: ${payload.status}`;
+      return `Phone: ${payload.phone_number}`;
+
+    case 'modify_appointment':
+      if (succeeded) return `Rescheduled to ${fmtDate(payload.new_date)} at ${fmtTime(payload.new_time)}`;
+      return `Phone: ${payload.phone_number}`;
+
+    case 'end_conversation':
+      if (succeeded && payload.summary_text) {
+        const text: string = payload.summary_text;
+        return text.length > 80 ? text.slice(0, 77) + '…' : text;
+      }
+      return null;
+
+    default:
+      return null;
+  }
+};
+
 // Inner component using LiveKit hooks
 const AgentVisualizer = () => {
   const { state, audioTrack } = useVoiceAssistant();
@@ -182,6 +242,7 @@ export const ActiveCall: React.FC<ActiveCallProps> = ({ livekitUrl, token, sessi
             events.map((event, idx) => {
               const isSuccess = event.event_type === 'tool_succeeded';
               const label = getToolLabel(event.event_name, event.event_type);
+              const detail = getEventDetail(event.event_name, event.event_type, event.payload_json);
               return (
                 <div
                   key={event.id || idx}
@@ -201,6 +262,11 @@ export const ActiveCall: React.FC<ActiveCallProps> = ({ livekitUrl, token, sessi
                       {label}
                     </span>
                   </div>
+                  {detail && (
+                    <p className={`text-xs mt-1 ml-4 ${isSuccess ? 'text-green-600' : 'text-blue-600'}`}>
+                      {detail}
+                    </p>
+                  )}
                   <div className="mt-2 text-[10px] text-muted flex justify-end">
                     {new Date(event.created_at).toLocaleTimeString()}
                   </div>
